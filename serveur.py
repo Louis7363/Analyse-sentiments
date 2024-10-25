@@ -1,90 +1,85 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="utf-8">
-    <title>Carte</title>
-    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
-    <link href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" rel="stylesheet">
-    <script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
-    <style>
-        body { margin: 0; padding: 0; }
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-    </style>
-</head>
-<body>
-<div id="map"></div>
-<script>
-    mapboxgl.accessToken = 'pk.eyJ1IjoibG91aXNtZWRlcmljIiwiYSI6ImNtMm9sMHIyeDA3NHMya3IxYmh4bHVzaGkifQ.odVg6hUEfN5CIxnOAX-Mjg';
-    
-    const map = new mapboxgl.Map({
-        container: 'map',
-        style: 'mapbox://styles/louismederic/cm2ol3mfh005r01qu7z3jfpze',
-        projection: 'globe', // Affiche la carte en globe
-        zoom: 1,
-        center: [30, 15] // Coordonnées initiales, sera remplacé par la position de l'utilisateur
-    });
+from flask import Flask, session, flash, request, redirect, url_for, render_template
+from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
+from flask_login import LoginManager, UserMixin
 
-    map.addControl(new mapboxgl.NavigationControl());
-    map.scrollZoom.disable();
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'yzdgiauaoi478GIEZ87Y2iad'  # Change à une clé secrète réelle
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///flask_bdd.db'  # Tu peux mettre ta base ici
+bcrypt = Bcrypt(app)  # Initialise la fonction Bcrypt
 
-    map.on('style.load', () => {
-        map.setFog({}); // Définir le style d'atmosphère par défaut
-    });
+# Importation du module sqlite3 de gestion de base de données
+import sqlite3
 
-    // Rotation parameters
-    const secondsPerRevolution = 240;
-    const maxSpinZoom = 5;
-    const slowSpinZoom = 3;
-    let userInteracting = false;
-    const spinEnabled = true;
 
-    function spinGlobe() {
-        const zoom = map.getZoom();
-        if (spinEnabled && !userInteracting && zoom < maxSpinZoom) {
-            let distancePerSecond = 360 / secondsPerRevolution;
-            if (zoom > slowSpinZoom) {
-                const zoomDif = (maxSpinZoom - zoom) / (maxSpinZoom - slowSpinZoom);
-                distancePerSecond *= zoomDif;
-            }
-            const center = map.getCenter();
-            center.lng -= distancePerSecond;
-            map.easeTo({ center, duration: 1000, easing: (n) => n });
-        }
-    }
-    
-    map.on('mousedown', () => { userInteracting = true; });
-    map.on('dragstart', () => { userInteracting = true; });
-    map.on('moveend', () => { spinGlobe(); });
-    spinGlobe();
+@app.route('/', methods=['GET'])
+def index():
+    username = session.get('username')  # Récupère le nom d'utilisateur de la session
+    return render_template('index.html', test="🙂", user=username)  # Passe le nom d'utilisateur au template
 
-    // Ajouter un marqueur à la position de l'utilisateur
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords;
 
-                // Centrer la carte sur les coordonnées de l'utilisateur
-                map.setCenter([longitude, latitude]);
-                map.setZoom(8); // Ajuste le niveau de zoom selon tes besoins
+@app.route('/inscription', methods=['GET', 'POST'])
+def inscription():
+    if 'username' in session:  # Vérifie si l'utilisateur est connecté
+        return redirect(url_for('index'))
+    else:
+        return render_template('signup.html')
 
-                // Ajouter un marqueur à la position de l'utilisateur
-                const userMarker = new mapboxgl.Marker({ color: 'blue' })
-                    .setLngLat([longitude, latitude]) // Coordonnées de l'utilisateur
-                    .setPopup(new mapboxgl.Popup().setHTML("<strong>{{user}}</strong><p>{{test}}</p>")) // Ajoute une popup
-                    .addTo(map);
-            },
-            (error) => {
-                console.error("Erreur de géolocalisation : ", error);
-                // Centrer sur des coordonnées par défaut si l'utilisateur refuse la géolocalisation
-                map.setCenter([0, 0]);
-                map.setZoom(2);
-            }
-        );
-    } else {
-        console.error("La géolocalisation n'est pas supportée par ce navigateur.");
-        map.setCenter([0, 0]); // Centrer sur des coordonnées par défaut
-        map.setZoom(2);
-    }
-</script>
-</body>
-</html>
+
+@app.route("/register", methods=['GET', 'POST'])
+def register():
+    username = request.form.get('username')
+    password = request.form.get('password')
+    verifPassword = request.form.get('Verif')
+    if password == verifPassword:
+        password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+        con = sqlite3.connect('database.db')
+        cursor = con.cursor()
+        requete = """INSERT INTO user (username, password_hash) VALUES (?, ?)"""
+        try:
+            cursor.execute(requete, (username, password_hash))
+            con.commit()
+        except:
+            erreur = 'Ce nom d\'utilisateur est déjà pris'
+            return render_template('signup.html', erreur=erreur)
+        return redirect(url_for('connexion'))
+    else:
+        erreur = "Les 2 mots de passes ne sont pas identiques ! Veuillez réessayer"
+        return render_template('signup.html', erreur=erreur)
+
+
+@app.route('/connexion', methods=['GET', 'POST'])
+def connexion():
+    return render_template('login.html')
+
+
+@app.route("/login", methods=['GET', 'POST'])
+def login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    # Connexion à la base de données SQLite
+    con = sqlite3.connect('database.db')
+    cursor = con.cursor()
+    requete = """SELECT password_hash FROM user WHERE username = ?"""
+    # Rechercher l'utilisateur dans la base de données
+    cursor.execute(requete, (username,))
+    user = cursor.fetchone()
+    con.close()
+
+    if user and bcrypt.check_password_hash(user[0], password):
+        session['username'] = username  # Enregistrer l'utilisateur dans la session
+        con = sqlite3.connect('database.db')
+        cursor = con.cursor()
+        requete = """SELECT id FROM user WHERE username = ?"""
+        cursor.execute(requete, (username,))
+        userData = cursor.fetchone()
+        id = userData[0]
+        session['id'] = id
+        return redirect(url_for('index'))
+    else:
+        erreur = 'Mot de passe ou identifiant incorrect'
+        return render_template('login.html', erreur=erreur)
+
+if __name__ == '__main__':
+    app.run(debug=True)
