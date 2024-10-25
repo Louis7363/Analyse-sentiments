@@ -70,7 +70,7 @@
                 // Ajouter un marqueur à la position de l'utilisateur
                 const userMarker = new mapboxgl.Marker({ color: 'blue' })
                     .setLngLat([longitude, latitude]) // Coordonnées de l'utilisateur
-                    .setPopup(new mapboxgl.Popup().setHTML("<strong>Votre Position</strong><p>{{test}}</p>")) // Ajoute une popup
+                    .setPopup(new mapboxgl.Popup().setHTML("<strong>{{user}}</strong><p>{{test}}</p>")) // Ajoute une popup
                     .addTo(map);
             },
             (error) => {
