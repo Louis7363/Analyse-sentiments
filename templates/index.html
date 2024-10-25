@@ -1,33 +1,34 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-<meta charset="utf-8">
-<title>Carte</title>
-<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
-<link href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" rel="stylesheet">
-<script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
-<style>
-body { margin: 0; padding: 0; }
-#map { position: absolute; top: 0; bottom: 0; width: 100%; }
-</style>
+    <meta charset="utf-8">
+    <title>Carte</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    </style>
 </head>
 <body>
 <div id="map"></div>
 <script>
-	mapboxgl.accessToken = 'pk.eyJ1IjoibG91aXNtZWRlcmljIiwiYSI6ImNtMm9sMHIyeDA3NHMya3IxYmh4bHVzaGkifQ.odVg6hUEfN5CIxnOAX-Mjg';
+    mapboxgl.accessToken = 'pk.eyJ1IjoibG91aXNtZWRlcmljIiwiYSI6ImNtMm9sMHIyeDA3NHMya3IxYmh4bHVzaGkifQ.odVg6hUEfN5CIxnOAX-Mjg';
+    
     const map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/louismederic/cm2ol3mfh005r01qu7z3jfpze',
-        projection: 'globe', // Display the map as a globe
+        projection: 'globe', // Affiche la carte en globe
         zoom: 1,
-        center: [30, 15]
+        center: [30, 15] // Coordonnées initiales, sera remplacé par la position de l'utilisateur
     });
 
     map.addControl(new mapboxgl.NavigationControl());
     map.scrollZoom.disable();
 
     map.on('style.load', () => {
-        map.setFog({}); // Set the default atmosphere style
+        map.setFog({}); // Définir le style d'atmosphère par défaut
     });
 
     // Rotation parameters
@@ -50,18 +51,40 @@ body { margin: 0; padding: 0; }
             map.easeTo({ center, duration: 1000, easing: (n) => n });
         }
     }
-
+    
     map.on('mousedown', () => { userInteracting = true; });
     map.on('dragstart', () => { userInteracting = true; });
     map.on('moveend', () => { spinGlobe(); });
     spinGlobe();
 
-    // Ajouter un marqueur pour Paris
-    const parisMarker = new mapboxgl.Marker({ color: 'red' })
-        .setLngLat([2.3522, 48.8566]) // Coordonnées de Paris
-        .setPopup(new mapboxgl.Popup().setHTML("<strong>Paris</strong><p>{{test}}</p>")) // Ajoute une popup
-        .addTo(map);
-</script>
+    // Ajouter un marqueur à la position de l'utilisateur
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
 
+                // Centrer la carte sur les coordonnées de l'utilisateur
+                map.setCenter([longitude, latitude]);
+                map.setZoom(8); // Ajuste le niveau de zoom selon tes besoins
+
+                // Ajouter un marqueur à la position de l'utilisateur
+                const userMarker = new mapboxgl.Marker({ color: 'blue' })
+                    .setLngLat([longitude, latitude]) // Coordonnées de l'utilisateur
+                    .setPopup(new mapboxgl.Popup().setHTML("<strong>Votre Position</strong><p>{{test}}</p>")) // Ajoute une popup
+                    .addTo(map);
+            },
+            (error) => {
+                console.error("Erreur de géolocalisation : ", error);
+                // Centrer sur des coordonnées par défaut si l'utilisateur refuse la géolocalisation
+                map.setCenter([0, 0]);
+                map.setZoom(2);
+            }
+        );
+    } else {
+        console.error("La géolocalisation n'est pas supportée par ce navigateur.");
+        map.setCenter([0, 0]); // Centrer sur des coordonnées par défaut
+        map.setZoom(2);
+    }
+</script>
 </body>
 </html>
