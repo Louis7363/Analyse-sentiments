@@ -57,13 +57,16 @@ body { margin: 0; padding: 0; }
     spinGlobe();
 
     // Ajouter un marqueur pour Paris
-    
-    if (navigator.geolocation) {//gere la localsiation et affiche un marqeur a ton emplacement
+    const parisMarker = new mapboxgl.Marker({ color: 'red' })
+        .setLngLat([2.3522, 48.8566]) // Coordonnées de Paris
+        .setPopup(new mapboxgl.Popup().setHTML("<strong>Paris</strong><p>{{test}}</p>")) // Ajoute une popup
+        .addTo(map);
+    if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     const { latitude, longitude } = position.coords;
                     const testMarker = new mapboxgl.Marker({ color: 'blue' })
-        .setLngLat([longitude , latitude]) // Coordonnées de Paris
+        .setLngLat([latitude, longitude]) // Coordonnées de Paris
         .setPopup(new mapboxgl.Popup().setHTML("<strong>Paris</strong><p>{{test}}</p>")) // Ajoute une popup
         .addTo(map);
                 },
