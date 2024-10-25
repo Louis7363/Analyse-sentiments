@@ -32,8 +32,7 @@
             const marker = L.marker([lat, lon]).addTo(map);
             marker.bindPopup("{{ test }}").openPopup(); // Texte d'information au-dessus du marqueur
         }
-
-        // Demande la position de l'utilisateur et initialise la carte
+           // Demande la position de l'utilisateur et initialise la carte
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
