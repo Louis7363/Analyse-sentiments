@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte avec Géolocalisation et Marqueur {{ test }}</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+    <style>
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // Fonction pour initialiser la carte centrée sur la position de l'utilisateur avec un marqueur
+        function initMap(lat, lon) {
+            // Initialisation de la carte centrée sur la position de l'utilisateur
+            const map = L.map('map').setView([lat, lon], 5); // Zoom 5 pour voir une zone large autour de l'utilisateur
+
+            // Ajoute une couche de fond OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 18,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            // Ajoute un marqueur à la position de l'utilisateur
+            const marker = L.marker([lat, lon]).addTo(map);
+            marker.bindPopup("{{ test }}").openPopup(); // Texte d'information au-dessus du marqueur
+        }
+
+        // Demande la position de l'utilisateur et initialise la carte
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    initMap(latitude, longitude); // Initialise la carte avec la position de l'utilisateur
+                },
+                (error) => {
+                    console.error("Erreur de géolocalisation : ", error);
+                    initMap(0, 0); // Coordonnées par défaut (Atlantique) si l'utilisateur refuse la géolocalisation
+                }
+            );
+        } else {
+            console.error("La géolocalisation n'est pas supportée par ce navigateur.");
+            initMap(0, 0); // Coordonnées par défaut si le navigateur ne supporte pas la géolocalisation
+        }
+    </script>
+</body>
+</html>
