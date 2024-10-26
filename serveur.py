@@ -2,7 +2,7 @@ from flask import Flask, session, flash, request, redirect, url_for, render_temp
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin
-
+from markupsafe import Markup
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yzdgiauaoi478GIEZ87Y2iad'  # Change à une clé secrète réelle
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///flask_bdd.db'  # Tu peux mettre ta base ici
@@ -15,7 +15,44 @@ import sqlite3
 @app.route('/', methods=['GET'])
 def index():
     username = session.get('username')  # Récupère le nom d'utilisateur de la session
-    return render_template('index.html', test="🙂", user=username)  # Passe le nom d'utilisateur au template
+    if not username:
+        return render_template('index.html', test="🙂", user="invité",send_emoji="""<div id="connect" class="dessus"><a href="/login">se connecter</a> ou <br><a href="/inscription">creer un compte</a></div>""")  # Passe le nom d'utilisateur au template
+    else:
+        return render_template('index.html', test="🙂", user=username , send_emoji= """
+<div id="sentiment" class="dessus">
+    <form action="/send_emoji" method="post">
+        <p>Comment vous sentez-vous ?</p>
+        <label for="emoji-input">Entrez un emoji :</label>
+        <input type="text" id="emoji-input" maxlength="2" placeholder="😊">
+        <p id="message"></p>
+        <button type="submit">Envoyer</button>
+    </form>
+</div>
+
+<script>
+    // Vérifie que le caractère est bien un emoji
+    const emojiInput = document.getElementById("emoji-input");
+    const message = document.getElementById("message");
+
+    emojiInput.addEventListener("input", () => {
+        const emojiPattern = /^[\\u{1F600}-\\u{1F64F}\\u{1F300}-\\u{1F5FF}\\u{1F680}-\\u{1F6FF}\\u{1F700}-\\u{1F77F}\\u{1F780}-\\u{1F7FF}\\u{1F800}-\\u{1F8FF}\\u{1F900}-\\u{1F9FF}\\u{1FA00}-\\u{1FA6F}\\u{1FA70}-\\u{1FAFF}\\u{2600}-\\u{26FF}\\u{2700}-\\u{27BF}]+$/u;
+        const inputText = emojiInput.value;
+
+        if (emojiPattern.test(inputText)) {
+            message.textContent = "Emoji valide !";
+            message.style.color = "green";
+        } else {
+            message.textContent = "Veuillez entrer une émotion valide (choisissez un emoji sur votre clavier).";
+            message.style.color = "red";
+        }
+    });
+</script>
+""")
+    
+@app.route('/send_emoji', methods=['POST'])
+def send_emoji():
+    emoji = request.form.get('emoji-input')  # Récupère l'emoji envoyé par le formulaire
+
 
 
 @app.route('/inscription', methods=['GET', 'POST'])
