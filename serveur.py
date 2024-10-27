@@ -22,7 +22,7 @@ def index():
     con.commit()
     data=cursor.fetchall()
     if not username:
-        return render_template('index.html', emotion="🙂",data=data, user="invité",send_emoji="""<div id="connect" class="dessus"><a href="/login"><button class="connexion">se connecter</button></a> ou <br><a href="/inscription"><button class="connexion">creer un compte</button></a></div>""")  # Passe le nom d'utilisateur au template
+        return render_template('index.html', emotion="🙂",data=data, user="invité",send_emoji="""<div id="connect" class="dessus"><a href="/login"><button class="connexion">se connecter</button></a><br><a href="/inscription"><button class="connexion">creer un compte</button></a></div>""")  # Passe le nom d'utilisateur au template
     else:
         con = sqlite3.connect('database.db')
         cursor = con.cursor()
@@ -41,7 +41,7 @@ def index():
         <label for="emoji-input">Entrez un emoji :</label>
         <input type="text" id="emoji-input" name="emoji-input" maxlength="2" placeholder="😊">
         <p id="message"></p>
-        <button type="submit">Envoyer</button>
+        <button class="connexion" type="submit">Envoyer</button>
         <input type="hidden" name="latitude" id="latitude" />
         <input type="hidden" name="longitude" id="longitude" />
     </form>

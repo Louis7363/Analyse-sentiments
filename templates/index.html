@@ -26,7 +26,7 @@
         style: 'mapbox://styles/louismederic/cm2ol3mfh005r01qu7z3jfpze',
         projection: 'globe', // Affiche la carte en globe
         zoom: 1,
-        center: [30, 15] // Coordonnées initiales, sera remplacé par la position de l'utilisateur
+        center: [0, 0] // Coordonnées initiales, sera remplacé par la position de l'utilisateur
     });
 
     map.addControl(new mapboxgl.NavigationControl());
@@ -90,7 +90,15 @@
     data.forEach(user => {
         const [username, emoji, latitude, longitude] = user;
 
-        new mapboxgl.Marker({ color: 'blue' })
+        // Créer un élément div pour le marqueur
+        const markerElement = document.createElement('div');
+        markerElement.innerText = emoji; // Utiliser l'emoji comme contenu
+        markerElement.style.fontSize = '24px'; // Ajuster la taille de l'emoji
+        markerElement.style.lineHeight = '24px'; // Ajuster le centrage vertical
+        markerElement.style.color = 'blue'; // Couleur de l'emoji (facultatif)
+
+        // Créer le marqueur
+        new mapboxgl.Marker(markerElement)
             .setLngLat([longitude, latitude])
             .setPopup(new mapboxgl.Popup().setHTML(`<strong>${username}</strong><p>${emoji}</p>`))
             .addTo(map);
