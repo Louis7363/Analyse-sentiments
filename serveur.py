@@ -1,56 +1,109 @@
-from flask import Flask,session,flash, request, redirect, url_for, render_template
+from flask import Flask, session, flash, request, redirect, url_for, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin
-
+from markupsafe import Markup
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yzdgiauaoi478GIEZ87Y2iad'  # Change à une clé secrète réelle
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///flask_bdd.db'  # Tu peux mettre ta base ici
-bcrypt = Bcrypt(app) #initialise la fonction Bcrypt
-
+bcrypt = Bcrypt(app)  # Initialise la fonction Bcrypt
 
 # Importation du module sqlite3 de gestion de base de données
-# (installé par défaut dans Python)
-# Pour la documentation, voir https://docs.python.org/3/library/sqlite3.html
 import sqlite3
 
 
 @app.route('/', methods=['GET'])
 def index():
-    return render_template('index.html', test="🙂")  # Utilise un emoji directement ou texte
+    username = session.get('username')  # Récupère le nom d'utilisateur de la session
+    if not username:
+        return render_template('index.html', emotion="🙂", user="invité",send_emoji="""<div id="connect" class="dessus"><a href="/login">se connecter</a> ou <br><a href="/inscription">creer un compte</a></div>""")  # Passe le nom d'utilisateur au template
+    else:
+        con = sqlite3.connect('database.db')
+        cursor = con.cursor()
+        requete = """SELECT emotion FROM user WHERE id = ?""" 
+        cursor.execute(requete, (session['id'],))
+        con.commit()
+        emotion= cursor.fetchone()
+        emotion = emotion[0]
+        con.close()
+        return render_template('index.html', emotion=emotion, user=username , send_emoji= """
+<div id="sentiment" class="dessus">
+    <form action="/send_emoji" method="post">
+        <p>Comment vous sentez-vous ?</p>
+        <label for="emoji-input">Entrez un emoji :</label>
+        <input type="text" id="emoji-input" name="emoji-input" maxlength="2" placeholder="😊">
+        <p id="message"></p>
+        <button type="submit">Envoyer</button>
+        <input type="hidden" name="latitude" id="latitude" />
+        <input type="hidden" name="longitude" id="longitude" />
+    </form>
+</div>
+
+<script>
+    // Vérifie que le caractère est bien un emoji
+    const emojiInput = document.getElementById("emoji-input");
+    const message = document.getElementById("message");
+
+    emojiInput.addEventListener("input", () => {
+        const emojiPattern = /^[\\u{1F600}-\\u{1F64F}\\u{1F300}-\\u{1F5FF}\\u{1F680}-\\u{1F6FF}\\u{1F700}-\\u{1F77F}\\u{1F780}-\\u{1F7FF}\\u{1F800}-\\u{1F8FF}\\u{1F900}-\\u{1F9FF}\\u{1FA00}-\\u{1FA6F}\\u{1FA70}-\\u{1FAFF}\\u{2600}-\\u{26FF}\\u{2700}-\\u{27BF}]+$/u;
+        const inputText = emojiInput.value;
+
+        if (emojiPattern.test(inputText)) {
+            message.textContent = "Emoji valide !";
+            message.style.color = "green";
+        } else {
+            message.textContent = "Veuillez entrer une émotion valide (choisissez un emoji sur votre clavier).";
+            message.style.color = "red";
+        }
+    });
+</script>
+""")
+    
+@app.route('/send_emoji', methods=['POST'])
+def send_emoji():
+    emoji = request.form.get('emoji-input')  # Récupère l'emoji envoyé par le formulaire
+    latitude = request.form.get('latitude')
+    longitude =request.form.get('longitude')
+    print(emoji)
+    con = sqlite3.connect('database.db')
+    cursor = con.cursor()
+    requete = """UPDATE user SET (emotion = ?,latitude=?,longitude=?) WHERE id = ?""" 
+    cursor.execute(requete, (emoji,latitude, longitude,session['id'] ))
+    con.commit()
+    return redirect(url_for('index'))
 
 
-
-
-@app.route('/inscription', methods = ['GET' , 'POST'])
+@app.route('/inscription', methods=['GET', 'POST'])
 def inscription():
-    if session :
+    if 'username' in session:  # Vérifie si l'utilisateur est connecté
         return redirect(url_for('index'))
-    else : 
+    else:
         return render_template('signup.html')
+
 
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     username = request.form.get('username')
     password = request.form.get('password')
     verifPassword = request.form.get('Verif')
-    if password == verifPassword :
+    if password == verifPassword:
         password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
         con = sqlite3.connect('database.db')
         cursor = con.cursor()
         requete = """INSERT INTO user (username, password_hash) VALUES (?, ?)"""
         try:
-            cursor.execute(requete,(username,password_hash))
+            cursor.execute(requete, (username, password_hash))
             con.commit()
-        except :
+        except:
             erreur = 'Ce nom d\'utilisateur est déjà pris'
-            return render_template('signup.html',erreur=erreur)
+            return render_template('signup.html', erreur=erreur)
         return redirect(url_for('connexion'))
-    else :
+    else:
         erreur = "Les 2 mots de passes ne sont pas identiques ! Veuillez réessayer"
-        return render_template('signup.html',erreur=erreur)
+        return render_template('signup.html', erreur=erreur)
 
-@app.route('/connexion', methods = ['GET' , 'POST'])
+
+@app.route('/connexion', methods=['GET', 'POST'])
 def connexion():
     return render_template('login.html')
 
@@ -81,7 +134,7 @@ def login():
         return redirect(url_for('index'))
     else:
         erreur = 'Mot de passe ou identifiant incorrect'
-        return render_template('login.html',erreur=erreur)
-    
+        return render_template('login.html', erreur=erreur)
+
 if __name__ == '__main__':
     app.run(debug=True)
