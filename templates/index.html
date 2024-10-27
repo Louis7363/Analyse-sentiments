@@ -20,6 +20,10 @@
 <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoibG91aXNtZWRlcmljIiwiYSI6ImNtMm9sMHIyeDA3NHMya3IxYmh4bHVzaGkifQ.odVg6hUEfN5CIxnOAX-Mjg';
     
+    const data = {{ data | tojson }};
+        
+    // Afficher les valeurs dans la console
+    console.log(data);    
     const map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/louismederic/cm2ol3mfh005r01qu7z3jfpze',
@@ -72,12 +76,6 @@
                 // Centrer la carte sur les coordonnées de l'utilisateur
                 map.setCenter([longitude, latitude]);
                 map.setZoom(8); // Ajuste le niveau de zoom selon tes besoins
-
-                // Ajouter un marqueur à la position de l'utilisateur
-                const userMarker = new mapboxgl.Marker({ color: 'blue' })
-                    .setLngLat([longitude, latitude]) // Coordonnées de l'utilisateur
-                    .setPopup(new mapboxgl.Popup().setHTML("<strong>{{user}}</strong><p>{{emotion}}</p>")) // Ajoute une popup
-                    .addTo(map);
             },
             (error) => {
                 console.error("Erreur de géolocalisation : ", error);
@@ -91,6 +89,16 @@
         map.setCenter([0, 0]); // Centrer sur des coordonnées par défaut
         map.setZoom(2);
     }
+
+    data.forEach(user => {
+        const [username, emoji, latitude, longitude] = user;
+
+        new mapboxgl.Marker({ color: 'blue' })
+            .setLngLat([longitude, latitude])
+            .setPopup(new mapboxgl.Popup().setHTML(`<strong>${username}</strong><p>${emoji}</p>`))
+            .addTo(map);
+    });
+
 </script>
 </body>
 </html>

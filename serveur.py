@@ -15,8 +15,14 @@ import sqlite3
 @app.route('/', methods=['GET'])
 def index():
     username = session.get('username')  # Récupère le nom d'utilisateur de la session
+    con = sqlite3.connect('database.db')
+    cursor = con.cursor()
+    requete2 = """SELECT username,emotion,latitude,longitude FROM user""" 
+    cursor.execute(requete2)
+    con.commit()
+    data=cursor.fetchall()
     if not username:
-        return render_template('index.html', emotion="🙂", user="invité",send_emoji="""<div id="connect" class="dessus"><a href="/login">se connecter</a> ou <br><a href="/inscription">creer un compte</a></div>""")  # Passe le nom d'utilisateur au template
+        return render_template('index.html', emotion="🙂",data=data, user="invité",send_emoji="""<div id="connect" class="dessus"><a href="/login">se connecter</a> ou <br><a href="/inscription">creer un compte</a></div>""")  # Passe le nom d'utilisateur au template
     else:
         con = sqlite3.connect('database.db')
         cursor = con.cursor()
@@ -25,8 +31,10 @@ def index():
         con.commit()
         emotion= cursor.fetchone()
         emotion = emotion[0]
-        con.close()
-        return render_template('index.html', emotion=emotion, user=username , send_emoji= """
+        
+        
+
+        return render_template('index.html', emotion=emotion, user=username ,data=data, send_emoji= """
 <div id="sentiment" class="dessus">
     <form action="/send_emoji" method="post">
         <p>Comment vous sentez-vous ?</p>
