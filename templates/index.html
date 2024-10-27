@@ -15,17 +15,7 @@
 <body>
 <div id="map">
     {{ send_emoji | safe }}
-    
-<<<<<<< HEAD
-=======
-
-
-   
-    
-
-
->>>>>>> 598a317de778163b92e583e45fe3c548ced471d8
-    </div>
+</div>
 </div>
 <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoibG91aXNtZWRlcmljIiwiYSI6ImNtMm9sMHIyeDA3NHMya3IxYmh4bHVzaGkifQ.odVg6hUEfN5CIxnOAX-Mjg';
@@ -76,11 +66,8 @@
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 const { latitude, longitude } = position.coords;
-<<<<<<< HEAD
                 document.getElementById("latitude").value = latitude;
                 document.getElementById("longitude").value = longitude;
-=======
->>>>>>> 598a317de778163b92e583e45fe3c548ced471d8
 
                 // Centrer la carte sur les coordonnées de l'utilisateur
                 map.setCenter([longitude, latitude]);
@@ -89,11 +76,7 @@
                 // Ajouter un marqueur à la position de l'utilisateur
                 const userMarker = new mapboxgl.Marker({ color: 'blue' })
                     .setLngLat([longitude, latitude]) // Coordonnées de l'utilisateur
-<<<<<<< HEAD
                     .setPopup(new mapboxgl.Popup().setHTML("<strong>{{user}}</strong><p>{{emotion}}</p>")) // Ajoute une popup
-=======
-                    .setPopup(new mapboxgl.Popup().setHTML("<strong>{{user}}</strong><p>{{test}}</p>")) // Ajoute une popup
->>>>>>> 598a317de778163b92e583e45fe3c548ced471d8
                     .addTo(map);
             },
             (error) => {
