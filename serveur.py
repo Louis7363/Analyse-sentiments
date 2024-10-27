@@ -22,7 +22,7 @@ def index():
     con.commit()
     data=cursor.fetchall()
     if not username:
-        return render_template('index.html', emotion="🙂",data=data, user="invité",send_emoji="""<div id="connect" class="dessus"><a href="/login">se connecter</a> ou <br><a href="/inscription">creer un compte</a></div>""")  # Passe le nom d'utilisateur au template
+        return render_template('index.html', emotion="🙂",data=data, user="invité",send_emoji="""<div id="connect" class="dessus"><a href="/login"><button class="connexion">se connecter</button></a> ou <br><a href="/inscription"><button class="connexion">creer un compte</button></a></div>""")  # Passe le nom d'utilisateur au template
     else:
         con = sqlite3.connect('database.db')
         cursor = con.cursor()
