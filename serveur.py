@@ -16,6 +16,7 @@ import sqlite3
 def index():
     username = session.get('username')  # Récupère le nom d'utilisateur de la session
     if not username:
+<<<<<<< HEAD
         return render_template('index.html', emotion="🙂", user="invité",send_emoji="""<div id="connect" class="dessus"><a href="/login">se connecter</a> ou <br><a href="/inscription">creer un compte</a></div>""")  # Passe le nom d'utilisateur au template
     else:
         con = sqlite3.connect('database.db')
@@ -27,15 +28,26 @@ def index():
         emotion = emotion[0]
         con.close()
         return render_template('index.html', emotion=emotion, user=username , send_emoji= """
+=======
+        return render_template('index.html', test="🙂", user="invité",send_emoji="""<div id="connect" class="dessus"><a href="/login">se connecter</a> ou <br><a href="/inscription">creer un compte</a></div>""")  # Passe le nom d'utilisateur au template
+    else:
+        return render_template('index.html', test="🙂", user=username , send_emoji= """
+>>>>>>> 598a317de778163b92e583e45fe3c548ced471d8
 <div id="sentiment" class="dessus">
     <form action="/send_emoji" method="post">
         <p>Comment vous sentez-vous ?</p>
         <label for="emoji-input">Entrez un emoji :</label>
+<<<<<<< HEAD
         <input type="text" id="emoji-input" name="emoji-input" maxlength="2" placeholder="😊">
         <p id="message"></p>
         <button type="submit">Envoyer</button>
         <input type="hidden" name="latitude" id="latitude" />
         <input type="hidden" name="longitude" id="longitude" />
+=======
+        <input type="text" id="emoji-input" maxlength="2" placeholder="😊">
+        <p id="message"></p>
+        <button type="submit">Envoyer</button>
+>>>>>>> 598a317de778163b92e583e45fe3c548ced471d8
     </form>
 </div>
 
@@ -62,6 +74,7 @@ def index():
 @app.route('/send_emoji', methods=['POST'])
 def send_emoji():
     emoji = request.form.get('emoji-input')  # Récupère l'emoji envoyé par le formulaire
+<<<<<<< HEAD
     latitude = request.form.get('latitude')
     longitude =request.form.get('longitude')
     print(emoji)
@@ -73,6 +86,11 @@ def send_emoji():
     return redirect(url_for('index'))
 
 
+=======
+
+
+
+>>>>>>> 598a317de778163b92e583e45fe3c548ced471d8
 @app.route('/inscription', methods=['GET', 'POST'])
 def inscription():
     if 'username' in session:  # Vérifie si l'utilisateur est connecté
