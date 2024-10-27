@@ -67,8 +67,8 @@ def send_emoji():
     print(emoji)
     con = sqlite3.connect('database.db')
     cursor = con.cursor()
-    requete = """UPDATE user SET (emotion = ?,latitude=?,longitude=?) WHERE id = ?""" 
-    cursor.execute(requete, (emoji,latitude, longitude,session['id'] ))
+    requete = """UPDATE user SET emotion = ?, latitude = ?, longitude = ? WHERE id = ?""" 
+    cursor.execute(requete, (emoji,latitude, longitude,session['id']))
     con.commit()
     return redirect(url_for('index'))
 
