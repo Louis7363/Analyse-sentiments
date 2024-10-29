@@ -17,7 +17,7 @@
 <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoibG91aXNtZWRlcmljIiwiYSI6ImNtMm9sMHIyeDA3NHMya3IxYmh4bHVzaGkifQ.odVg6hUEfN5CIxnOAX-Mjg';
     
-    const data = {{ data | tojson }};
+    const data = {{ data | tojson | safe }};
         
     // Afficher les valeurs dans la console
     console.log(data);    
@@ -87,23 +87,32 @@
         map.setZoom(2);
     }
 
+    // Ajouter des marqueurs pour chaque utilisateur dans les données
     data.forEach(user => {
-        const [username, emoji, latitude, longitude] = user;
+    const [capitale, latitude, longitude, emoji] = user;  // Extraction des données
+    console.log(capitale, latitude, longitude, emoji);
 
-        // Créer un élément div pour le marqueur
-        const markerElement = document.createElement('div');
-        markerElement.innerText = emoji; // Utiliser l'emoji comme contenu
-        markerElement.style.fontSize = '24px'; // Ajuster la taille de l'emoji
-        markerElement.style.lineHeight = '24px'; // Ajuster le centrage vertical
-        markerElement.style.color = 'blue'; // Couleur de l'emoji (facultatif)
+    // Créer un élément div pour le marqueur
+    const markerElement = document.createElement('div');
+    
+    // Vérifie le nombre d'émojis
+    if (emoji.length === 1) {
+        markerElement.innerText = emoji[0]; // Affiche l'emoji directement si un seul
+    } else {
+        markerElement.innerHTML = ` <p class="nb"><span style="font-size: 24px; color: blue;">⭐</span>(${emoji.length})</p>`; // Affiche une icône si plusieurs émojis
+    }
+    
+    markerElement.style.fontSize = '24px'; // Ajuster la taille de l'emoji
+    markerElement.style.lineHeight = '24px'; // Ajuster le centrage vertical
 
-        // Créer le marqueur
-        new mapboxgl.Marker(markerElement)
-            .setLngLat([longitude, latitude])
-            .setPopup(new mapboxgl.Popup().setHTML(`<strong>${username}</strong><p>${emoji}</p>`))
-            .addTo(map);
-    });
+    // Créer le marqueur et le popup
+    new mapboxgl.Marker(markerElement)
+        .setLngLat([longitude, latitude])
+        .setPopup(new mapboxgl.Popup().setHTML(`<strong>${capitale}</strong><p>${emoji.join(' ')}</p>`)) // Afficher tous les émojis dans le popup
+        .addTo(map);
+});
 
 </script>
+
 </body>
 </html>

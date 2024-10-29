@@ -12,30 +12,66 @@ bcrypt = Bcrypt(app)  # Initialise la fonction Bcrypt
 # Importation du module sqlite3 de gestion de base de données
 import sqlite3
 import requests
-
+def get_capital_coordinates(capitale, geonames_username):
+    """
+    Cette fonction doit être implémentée pour obtenir les coordonnées de la capitale à partir de son nom.
+    Utilise l'API GeoNames pour récupérer la latitude et la longitude de la capitale.
+    """
+    url = f'http://api.geonames.org/searchJSON?q={capitale}&maxRows=1&username={geonames_username}&featureCode=PPLC'
+    response = requests.get(url)
+    data = response.json()
+    if data['geonames']:
+        lat = data['geonames'][0]['lat']
+        lng = data['geonames'][0]['lng']
+        return lat, lng
+    return None, None
 @app.route('/', methods=['GET'])
 def index():
     username = session.get('username')  # Récupère le nom d'utilisateur de la session
     con = sqlite3.connect('database.db')
     cursor = con.cursor()
-    requete2 = """SELECT username,emotion,latitude,longitude FROM user""" 
+
+    # Exécuter la requête pour obtenir toutes les données nécessaires, incluant la capitale
+    requete2 = """SELECT username, emotion, latitude, longitude, capitale FROM user""" 
     cursor.execute(requete2)
     con.commit()
-    data=cursor.fetchall()
-    if not username:
-        return render_template('index.html', emotion="🙂",data=data, user="invité",send_emoji="""<div id="connect" class="dessus"><a href="/login"><button class="connexion">se connecter</button></a> ou <br><a href="/inscription"><button class="connexion">creer un compte</button></a></div>""")  # Passe le nom d'utilisateur au template
-    else:
-        con = sqlite3.connect('database.db')
-        cursor = con.cursor()
-        requete = """SELECT emotion FROM user WHERE id = ?""" 
-        cursor.execute(requete, (session['id'],))
-        con.commit()
-        emotion= cursor.fetchone()
-        emotion = emotion[0]
-        
-        
+    data = cursor.fetchall()
 
-        return render_template('index.html', emotion=emotion, user=username ,data=data, send_emoji= """
+    # Initialiser un dictionnaire pour regrouper les émojis par capitale
+    grouped_data = {}
+    geonames_username = "Mederic_Charveriat"  # Ton nom d'utilisateur GeoNames pour récupérer les capitales
+
+    # Remplir le dictionnaire avec les données, en groupant les émojis par capitale
+    for entry in data:
+        username, emotion, latitude, longitude, capitale = entry
+        
+        # Vérifie si la capitale est déjà dans le dictionnaire
+        if capitale not in grouped_data:
+            # Obtenir les coordonnées de la capitale
+            capital_lat, capital_lng = get_capital_coordinates(capitale, geonames_username)
+            # Initialiser avec le nom de la capitale et ses coordonnées
+            grouped_data[capitale] = [capitale, capital_lat, capital_lng, []]  # Liste pour les émotions
+
+        # Ajouter l'émoji à la liste des émotions pour la capitale correspondante
+        grouped_data[capitale][3].append(emotion)
+
+    # Transformer le dictionnaire en liste de listes pour obtenir le résultat final
+    final_result = list(grouped_data.values())
+
+    # Afficher le résultat final
+    print(final_result)
+
+    data = final_result
+    if not username:
+        return render_template('index.html', emotion="🙂", data=data, user="invité", send_emoji="""<div id="connect" class="dessus"><a href="/login"><button class="connexion">se connecter</button></a> ou <br><a href="/inscription"><button class="connexion">creer un compte</button></a></div>""")  # Passe le nom d'utilisateur au template
+    else:
+        # Obtenir l'émotion de l'utilisateur connecté
+        cursor.execute("""SELECT emotion FROM user WHERE id = ?""", (session['id'],))
+        con.commit()
+        emotion = cursor.fetchone()
+        emotion = emotion[0] if emotion else "🙂"  # Valeur par défaut si pas d'émotion
+
+        return render_template('index.html', emotion=emotion, user=username, data=data, send_emoji= """
 <div id="sentiment" class="dessus">
     <form action="/send_emoji" method="post">
         <p>Comment vous sentez-vous ?</p>
@@ -67,7 +103,7 @@ def index():
     });
 </script>
 """)
-    
+
 @app.route('/send_emoji', methods=['POST'])
 def send_emoji():
     emoji = request.form.get('emoji-input')  # Récupère l'emoji envoyé par le formulaire
@@ -144,29 +180,5 @@ def login():
     else:
         erreur = 'Mot de passe ou identifiant incorrect'
         return render_template('login.html', erreur=erreur)
-def get_country_from_coordinates(latitude, longitude):#on a droit a 10 000 requetes par jour,retourne le pays ou se trouve ces coordonées
-    # URL pour la requête à l'API Geonames
-    url = "http://api.geonames.org/countryCodeJSON"
-    
-    # Paramètres de la requête
-    params = {
-        "lat": latitude,
-        "lng": longitude,
-        "username": "Mederic_Charveriat"
-    }
-    
-    # Envoi de la requête GET à l'API Geonames
-    response = requests.get(url, params=params)
-    
-    # Vérification si la requête est réussie
-    if response.status_code == 200:
-        data = response.json()
-        if 'countryName' in data:
-            return data['countryName']
-        else:
-            return "Country information not available."
-    else:
-        return f"Error: Unable to fetch data. Status code: {response.status_code}"
-
 if __name__ == '__main__':
     app.run(debug=True)
