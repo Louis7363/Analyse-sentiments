@@ -13,6 +13,24 @@ bcrypt = Bcrypt(app)  # Initialise la fonction Bcrypt
 import sqlite3
 import requests
 GEONAMES_USERNAME = 'Mederic_Charveriat'  # Nom d'utilisateur GeoNames
+def update_capital_for_user(username, latitude, longitude):
+    """
+    Met à jour la capitale pour un utilisateur en fonction de ses coordonnées géographiques.
+    """
+    # Obtenir le nom du pays à partir des coordonnées
+    country = get_country_from_coordinates(latitude, longitude, GEONAMES_USERNAME)
+
+    # Si le pays est trouvé, obtenir la capitale
+    if country != 'Country information not available.':
+        capital = get_capital_from_country(country)
+        
+        # Si la capitale est trouvée, mettre à jour la base de données
+        if capital != 'Capital information not available.':
+            con = sqlite3.connect('database.db')
+            cursor = con.cursor()
+            cursor.execute("UPDATE user SET capitale = ? WHERE username = ?", (capital, username))
+            con.commit()
+            con.close()
 
 def get_country_from_coordinates(lat, lon):
     """
@@ -57,7 +75,7 @@ def get_capital_coordinates(capitale):
     return None, None
 @app.route('/', methods=['GET'])
 def index():
-    
+   
     con = sqlite3.connect('database.db')
     cursor = con.cursor()
 
@@ -201,7 +219,7 @@ def login():
     username = request.form.get('username')
     password = request.form.get('password')
 
-    # Connexion à la base de données SQLite
+    # Connexion à la base de données SQLite pour récupérer les informations utilisateur
     con = sqlite3.connect('database.db')
     cursor = con.cursor()
     requete = """SELECT password_hash, latitude, longitude FROM user WHERE username = ?"""
@@ -211,23 +229,12 @@ def login():
     con.close()
 
     if user and bcrypt.check_password_hash(user[0], password):
-        session['username'] = username  # Enregistrer l'utilisateur dans la session
+        # Enregistrer l'utilisateur dans la session
+        session['username'] = username  
         latitude, longitude = user[1], user[2]  # Récupérer les coordonnées
 
-        # Obtenir le nom du pays à partir des coordonnées
-        country = get_country_from_coordinates(latitude, longitude, GEONAMES_USERNAME)
-
-        # Obtenir le nom de la capitale du pays
-        if country != 'Country information not available.':
-            capital = get_capital_from_country(country)
-            
-            # Mettre à jour la colonne 'capitale' dans la base de données
-            if capital != 'Capital information not available.':
-                con = sqlite3.connect('database.db')
-                cursor = con.cursor()
-                cursor.execute("UPDATE user SET capitale = ? WHERE username = ?", (capital, username))
-                con.commit()
-                con.close()
+        # Appeler la fonction pour mettre à jour la capitale
+        update_capital_for_user(username, latitude, longitude)
 
         # Obtenir l'ID de l'utilisateur pour la session
         con = sqlite3.connect('database.db')
@@ -241,5 +248,6 @@ def login():
     else:
         erreur = 'Mot de passe ou identifiant incorrect'
         return render_template('login.html', erreur=erreur)
+
 if __name__ == '__main__':
     app.run(debug=True)
