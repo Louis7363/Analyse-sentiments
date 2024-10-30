@@ -12,12 +12,42 @@ bcrypt = Bcrypt(app)  # Initialise la fonction Bcrypt
 # Importation du module sqlite3 de gestion de base de données
 import sqlite3
 import requests
-def get_capital_coordinates(capitale, geonames_username):
+GEONAMES_USERNAME = 'Mederic_Charveriat'  # Nom d'utilisateur GeoNames
+
+def get_country_from_coordinates(lat, lon):
+    """
+    Utilise l'API GeoNames pour récupérer le nom du pays à partir des coordonnées.
+    """
+    url = f'http://api.geonames.org/countryCodeJSON?lat={lat}&lng={lon}&username={GEONAMES_USERNAME}'
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        country_data = response.json()
+        return country_data.get('countryName', 'Country information not available.')
+    except (requests.RequestException, ValueError):
+        return 'Country information not available.'
+
+def get_capital_from_country(country_name):
+    """
+    Utilise l'API GeoNames pour récupérer le nom de la capitale à partir du nom du pays.
+    """
+    url = f'http://api.geonames.org/searchJSON?q={country_name}&maxRows=1&username={GEONAMES_USERNAME}&featureCode=PPLC'
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        if data['geonames']:
+            capital_data = data['geonames'][0]
+            return capital_data.get('name', 'Capital information not available.')
+    except (requests.RequestException, ValueError):
+        return 'Capital information not available.'
+
+def get_capital_coordinates(capitale):
     """
     Cette fonction doit être implémentée pour obtenir les coordonnées de la capitale à partir de son nom.
     Utilise l'API GeoNames pour récupérer la latitude et la longitude de la capitale.
     """
-    url = f'http://api.geonames.org/searchJSON?q={capitale}&maxRows=1&username={geonames_username}&featureCode=PPLC'
+    url = f'http://api.geonames.org/searchJSON?q={capitale}&maxRows=1&username=Mederic_Charveriat&featureCode=PPLC'
     response = requests.get(url)
     data = response.json()
     if data['geonames']:
@@ -27,7 +57,7 @@ def get_capital_coordinates(capitale, geonames_username):
     return None, None
 @app.route('/', methods=['GET'])
 def index():
-    username = session.get('username')  # Récupère le nom d'utilisateur de la session
+    
     con = sqlite3.connect('database.db')
     cursor = con.cursor()
 
@@ -48,7 +78,7 @@ def index():
         # Vérifie si la capitale est déjà dans le dictionnaire
         if capitale not in grouped_data:
             # Obtenir les coordonnées de la capitale
-            capital_lat, capital_lng = get_capital_coordinates(capitale, geonames_username)
+            capital_lat, capital_lng = get_capital_coordinates(capitale)
             # Initialiser avec le nom de la capitale et ses coordonnées
             grouped_data[capitale] = [capitale, capital_lat, capital_lng, []]  # Liste pour les émotions
 
@@ -62,6 +92,7 @@ def index():
     print(final_result)
 
     data = final_result
+    username = session.get('username')  # Récupère le nom d'utilisateur de la session
     if not username:
         return render_template('index.html', emotion="🙂", data=data, user="invité", send_emoji="""<div id="connect" class="dessus"><a href="/login"><button class="connexion">se connecter</button></a> ou <br><a href="/inscription"><button class="connexion">creer un compte</button></a></div>""")  # Passe le nom d'utilisateur au template
     else:
@@ -152,6 +183,18 @@ def register():
 def connexion():
     return render_template('login.html')
 
+def get_country_from_coordinates(lat, lon, geonames_username):
+    """
+    Utilise l'API GeoNames pour récupérer le nom du pays à partir des coordonnées.
+    """
+    url = f'http://api.geonames.org/countryCodeJSON?lat={lat}&lng={lon}&username={geonames_username}'
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        country_data = response.json()
+        return country_data.get('countryName', 'Country information not available.')
+    except (requests.RequestException, ValueError):
+        return 'Country information not available.'
 
 @app.route("/login", methods=['GET', 'POST'])
 def login():
@@ -161,21 +204,39 @@ def login():
     # Connexion à la base de données SQLite
     con = sqlite3.connect('database.db')
     cursor = con.cursor()
-    requete = """SELECT password_hash FROM user WHERE username = ?"""
-    # Rechercher l'utilisateur dans la base de données
+    requete = """SELECT password_hash, latitude, longitude FROM user WHERE username = ?"""
+    
     cursor.execute(requete, (username,))
     user = cursor.fetchone()
     con.close()
 
     if user and bcrypt.check_password_hash(user[0], password):
         session['username'] = username  # Enregistrer l'utilisateur dans la session
+        latitude, longitude = user[1], user[2]  # Récupérer les coordonnées
+
+        # Obtenir le nom du pays à partir des coordonnées
+        country = get_country_from_coordinates(latitude, longitude, GEONAMES_USERNAME)
+
+        # Obtenir le nom de la capitale du pays
+        if country != 'Country information not available.':
+            capital = get_capital_from_country(country)
+            
+            # Mettre à jour la colonne 'capitale' dans la base de données
+            if capital != 'Capital information not available.':
+                con = sqlite3.connect('database.db')
+                cursor = con.cursor()
+                cursor.execute("UPDATE user SET capitale = ? WHERE username = ?", (capital, username))
+                con.commit()
+                con.close()
+
+        # Obtenir l'ID de l'utilisateur pour la session
         con = sqlite3.connect('database.db')
         cursor = con.cursor()
-        requete = """SELECT id FROM user WHERE username = ?"""
-        cursor.execute(requete, (username,))
+        cursor.execute("SELECT id FROM user WHERE username = ?", (username,))
         userData = cursor.fetchone()
-        id = userData[0]
-        session['id'] = id
+        con.close()
+
+        session['id'] = userData[0]
         return redirect(url_for('index'))
     else:
         erreur = 'Mot de passe ou identifiant incorrect'
