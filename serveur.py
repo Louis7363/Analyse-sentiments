@@ -107,7 +107,7 @@ def index():
     final_result = list(grouped_data.values())
 
     # Afficher le résultat final
-    print(final_result)
+   # print(final_result) genere des bug selon la config du pc
 
     data = final_result
     username = session.get('username')  # Récupère le nom d'utilisateur de la session
